@@ -1,4 +1,4 @@
-export type WorkbenchClaims = { iss:string; aud:string; exp:number; iat:number; job_number:string; enabled:1; display_name?:string };
+export type WorkbenchClaims = { iss:string; aud:string; exp:number; iat:number; jti:string; job_number:string; enabled:1; display_name?:string };
 function decode(value:string) {
   if(!/^[A-Za-z0-9_-]+$/.test(value)) throw new Error('Invalid encoding');
   return Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
@@ -15,8 +15,9 @@ export async function verifyWorkbenchToken(raw:string,secret:string,now=Date.now
     const claims=JSON.parse(new TextDecoder().decode(decode(parts[1])));
     const seconds=now/1000;
     if(claims.iss!=='sales-workbench'||claims.aud!=='ai-risk-dashboard'||claims.enabled!==1||
+      typeof claims.jti!=='string'||!/^[A-Za-z0-9_-]{16,128}$/.test(claims.jti)||
       !/^EEO\d{5,12}$/.test(claims.job_number)||!Number.isSafeInteger(claims.exp)||!Number.isSafeInteger(claims.iat)||
-      claims.exp<=seconds||claims.iat>seconds+60||claims.exp<=claims.iat||claims.exp-claims.iat>86400||
+      claims.exp<=seconds||claims.iat>seconds+60||claims.exp<=claims.iat||claims.exp-claims.iat>1800||
       (claims.nbf!==undefined&&(!Number.isFinite(claims.nbf)||claims.nbf>seconds+60)))return null;
     return claims;
   }catch{return null;}

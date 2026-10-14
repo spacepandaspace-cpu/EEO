@@ -1,15 +1,13 @@
-import { clearSession, expiredSessionCookie } from "@/lib/local-auth";
+import { clearSession, expiredSessionCookie, getAuthenticatedUser } from '@/lib/local-auth';
 import { env } from '@/lib/node-runtime';
-import { workbenchEnabled } from '@/lib/workbench-auth';
-
-export async function POST(request: Request) {
-  if(workbenchEnabled()){
-    await clearSession(request);
-    return Response.json({logoutUrl:env.WORKBENCH_LOGOUT_URL},{headers:{'Set-Cookie':expiredSessionCookie(),'Cache-Control':'no-store'}});
-  }
-  try {
-    await clearSession(request);
-  } finally {
-    return new Response(null, { status: 204, headers: { "Set-Cookie": expiredSessionCookie() } });
-  }
+import { expiredWorkbenchCookie } from '@/lib/workbench-auth';
+import { safeMutation } from '@/lib/auth-mutation';
+export async function POST(request:Request) {
+  if(!safeMutation(request))return Response.json({error:'请求来源不允许'},{status:403});
+  const user=await getAuthenticatedUser(request);
+  await clearSession(request);
+  const headers=new Headers({'Cache-Control':'no-store'});
+  headers.append('Set-Cookie',expiredSessionCookie());
+  headers.append('Set-Cookie',expiredWorkbenchCookie());
+  return Response.json({logoutUrl:user?.authSource==='workbench'?env.WORKBENCH_LOGOUT_URL:undefined},{headers});
 }

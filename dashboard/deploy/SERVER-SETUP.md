@@ -1,14 +1,14 @@
-# 发给腾讯云智能体：标准 Node.js 部署
+# 1.0.1 双入口登录与工号权限部署
 
-本版为 Node.js + 原生 SQLite，替代旧 Workers/Miniflare 包。请使用本版 Release 附件与 README，不运行 next build / next start / wrangler。已有静态站点不移动、不停用、不替换其 nginx 全局配置。
+本版建立在用户确认的已上线1.0基线之上。完整、可执行的双方对接步骤见 [工作台账号打通与部署说明](../../docs/1.0.1/工作台账号打通与部署说明.md)。请把该说明交给工作台Codex和看板服务器智能体；其中协议、工号规则和验收是本次更新依据。
 
-1. 先只读检查Linux版本、架构、内存、磁盘、Node和已有站点端口。Node >=22.13，建议24；与其他项目隔离。确认3002可用。
-2. 解压到新的独立release目录，进入 dashboard。代码ZIP不含客户数据、密码或登录态。运行 npm ci（不要复制Windows node_modules），npm run typecheck、npm run lint、npm run build。若 Release 已包含 dist，可使用已构建文件，仍核对完整资源。vinext在生产dependencies中，预构建模式可 npm ci --omit=dev。
-3. 创建独立服务用户 teachingrisk、持久目录 /var/lib/teaching-risk（权限700），数据库固定为其 teaching-risk.sqlite，不能放到public或随release覆盖。旧D1数据库如已有业务数据，停本项目旧进程并备份后用 scripts/migrate-legacy-sqlite.mjs <绝对旧SQLite路径> 复制迁移；不得删除原库或覆盖已存在目标库。原库user_account/source_run/eeo_snapshot/external_identity等保持。
-4. 用受限 /etc/teaching-risk.env 配置 dashboard/deploy/env.template 的值。AUTH_MODE=workbench；HS256密钥至少32字符；WORKBENCH_REVOKE_MODE=ttl；工作台登录/退出固定同源HTTPS地址；同步密钥单独生成至少32字符，不能和SSO/旧站点共用。真实值不要写进仓库或日志。工号权限用 scripts/provision-workbench-users.mjs 导入已明确批准的映射，不能自动根据姓名开权限。
-5. systemd模板在 dashboard/deploy/teaching-risk.service。WorkingDirectory指向本版dashboard实际目录；替换@NODE@为Node绝对路径；DATA_DIR=/var/lib/teaching-risk、PORT=3002由服务配置定义，env文件不要重复覆盖。ExecStart为 Node --max-old-space-size=256 scripts/run-server.mjs；MemoryMax=512M、重启次数有上限、KillMode=control-group。只监听127.0.0.1。
-6. 先在独立DATA_DIR和3302端口试运行并 curl --max-time 10 检查 /api/health=200、首页=200、无令牌/api/eeo-sync=401。正式启动后再添加独立nginx站点反代到127.0.0.1:3002，保留已有三四个静态站点。真实HTTPS域名/证书由服务器侧处理，不使用本对话旧目标地址。
-7. 通过授权渠道单独导入业务摘要和权限映射。机器同步沿用 /api/eeo-sync 的分块begin/part/commit协议，拒绝旧数据、校验失败保留有效快照。EEO采集继续在Windows本机，服务器不装Chrome、不运行采集定时任务。
-8. 验收工号登录、顾问之间的数据隔离、30分钟过期、退出、本机同步、幂等和失败保留；观察至少60秒单Node内存，确认重复启动拒绝、停止后释放锁；旧静态站点逐一回归。记录Linux和真实SSO验收结果，不以页面可打开代替验收。
-
-缺少工作台HTTPS地址/密钥、最终系统HTTPS地址、已批准账号映射时，保留隔离部署，报告具体缺项；不得自建虚构账号、关闭认证或扩大授权。
+- 使用本次1.0.1代码包安装到新release目录；Node>=22.13，建议24；npm ci、npm run typecheck、npm run lint、npm run build，或预构建文件加npm ci --omit=dev。
+- 标准Node + 原生SQLite，禁止next build、next start、wrangler；数据库固定在外置DATA_DIR，不含在代码包、不随release覆盖，不需要MySQL/PostgreSQL。
+- 采用AUTH_MODE=hybrid，配置DASHBOARD_ORIGIN、独立WORKBENCH_SECRET、独立WORKBENCH_ACCOUNT_TOKEN、工作台HTTPS签发/退出URL。见dashboard/deploy/env.template。原EEO_SYNC_TOKEN保持，不能与其他密钥共用。
+- 原工作台“教学风险监测看板”卡片保留；链接改为工作台后端签发路由。工号从工作台真实会话读取，HS256 JWT含唯一jti，最长1800秒，一次交换；不相信浏览器传来的角色或工号。
+- EEO04410是唯一管理员；其他已授权工号仅为销售，按客户consultantJobNumber隔离；未授权或禁用者无数据。公开初始化及按姓名生成账号接口永久410。
+- 两种登录绑定同一内部账号。独立密码由管理员设置或服务器交互恢复，不改工作台密码、不提供密码查看；工作台停用推送会同时撤销两个入口。
+- 保留当前1.0和数据库备份，只停止本看板旧进程。启动脚本自动迁移新增票据表，保留客户、订单、EEO及日志。systemd堆256MB/MemoryMax512M/单进程，原站点均保留。
+- EEO仍在Windows本机显式采集；服务器不启动Chrome、Vite/watch或自动采集。上线回归同步失败保留有效快照。
+- 对照完整说明进行真实工作台、Linux及HTTPS验收，特别检查管理员、销售越权、独立登录、停用、退出/30分钟期限、重放、匿名注册、至少60秒RSS和重复启动。
+- 当前已知工作台URL为http://175.24.138.38/workbench；没有HTTPS前不得传递真实票据、密码或机器令牌。最终看板HTTPS地址须从现有卡片目标确认，本次不猜测或覆盖入口目标。

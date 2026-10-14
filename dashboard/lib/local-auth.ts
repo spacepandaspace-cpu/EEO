@@ -1,9 +1,10 @@
 import "server-only";
 import { env } from "@/lib/node-runtime";
-import { workbenchEnabled, getWorkbenchUser, clearWorkbenchSession } from './workbench-auth';
+import { workbenchEnabled, passwordEnabled, getWorkbenchUser, clearWorkbenchSession } from './workbench-auth';
+import { ADMIN_JOB_NUMBER, validIdentity } from './identity-policy';
 
 export const SESSION_COOKIE = "ai_risk_session";
-const SESSION_HOURS = 12;
+const SESSION_HOURS = 0.5;
 const PASSWORD_ITERATIONS = 160_000;
 
 export type AuthUser = {
@@ -12,6 +13,7 @@ export type AuthUser = {
   role: "admin" | "consultant";
   consultantName: string | null;
   jobNumber?: string | null;
+  authSource?: 'password' | 'workbench';
 };
 
 function bytesToBase64(bytes: Uint8Array) {
@@ -106,14 +108,18 @@ export function expiredSessionCookie() {
 }
 
 export async function clearSession(request: Request) {
-  if(workbenchEnabled()){await clearWorkbenchSession(request);return;}
+  if(workbenchEnabled())await clearWorkbenchSession(request);
   const token = parseCookie(request, SESSION_COOKIE);
   if (!token) return;
   await env.DB.prepare("DELETE FROM auth_session WHERE token_hash = ?").bind(await sha256(token)).run();
 }
 
 export async function getAuthenticatedUser(request: Request): Promise<AuthUser | null> {
-  if(workbenchEnabled())return getWorkbenchUser(request);
+  if(workbenchEnabled()){
+    const user=await getWorkbenchUser(request);
+    if(user)return user;
+  }
+  if(!passwordEnabled())return null;
   const token = parseCookie(request, SESSION_COOKIE);
   if (!token) return null;
   const row = await env.DB.prepare(`
@@ -121,16 +127,16 @@ export async function getAuthenticatedUser(request: Request): Promise<AuthUser |
            e.job_number AS jobNumber
     FROM auth_session s
     JOIN user_account u ON u.id = s.user_id
-    LEFT JOIN external_identity e ON e.user_id = u.id AND e.enabled = 1
-    WHERE s.token_hash = ? AND s.expires_at > ? AND u.enabled = 1
+    JOIN external_identity e ON e.user_id = u.id AND e.enabled = 1
+    WHERE s.token_hash = ? AND s.expires_at > ? AND datetime(s.created_at) > datetime('now','-30 minutes') AND u.enabled = 1
     LIMIT 1
   `).bind(await sha256(token), new Date().toISOString()).first<AuthUser>();
-  return row ?? null;
+  return row && validIdentity(row) ? {...row,authSource:'password'} : null;
 }
 
 export async function requireAdmin(request: Request) {
   const user = await getAuthenticatedUser(request);
-  if (!user || user.role !== "admin") return null;
+  if (!user || user.role !== "admin" || user.jobNumber !== ADMIN_JOB_NUMBER) return null;
   return user;
 }
 

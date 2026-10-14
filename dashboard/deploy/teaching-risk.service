@@ -6,7 +6,7 @@ StartLimitBurst=3
 [Service]
 Type=simple
 User=teachingrisk
-WorkingDirectory=/opt/teaching-risk/current
+WorkingDirectory=/opt/teaching-risk/current/dashboard
 Environment=PORT=3002
 Environment=DATA_DIR=/var/lib/teaching-risk
 EnvironmentFile=/etc/teaching-risk.env

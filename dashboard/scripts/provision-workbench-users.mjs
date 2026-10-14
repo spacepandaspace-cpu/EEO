@@ -14,6 +14,7 @@ try {
  for(const row of rows){
   if(!/^EEO\d{5,12}$/.test(row.jobNumber)||jobs.has(row.jobNumber)||!['admin','consultant'].includes(row.role)||typeof row.username!=='string'||!row.username.trim()||row.username.length>100|| (row.role==='consultant'&&(!row.consultantName||row.consultantName.length>100)))throw new Error('Mapping must explicitly assign job number, local role and consultant scope');
   jobs.add(row.jobNumber);
+  if((row.jobNumber==='EEO04410')!==(row.role==='admin'))throw new Error('Only EEO04410 may have the dashboard administrator role');
   let userId=row.userId;
   if(userId){const user=db.prepare('SELECT role,consultant_name FROM user_account WHERE id=?').get(userId);if(!user||user.role!==row.role||user.consultant_name!==(row.consultantName||null))throw new Error('Existing business user mismatch; no implicit role or ownership changes');}
   else {
@@ -24,6 +25,13 @@ try {
   db.prepare('INSERT INTO external_identity(job_number,user_id) VALUES(?,?) ON CONFLICT(job_number) DO NOTHING').run(row.jobNumber,userId);
   const mapping=db.prepare('SELECT user_id FROM external_identity WHERE job_number=?').get(row.jobNumber);
   if(mapping.user_id!==userId)throw new Error('Mapping conflict');
+  if(row.enabled!==undefined){
+    if(![0,1].includes(row.enabled))throw new Error('Explicit enabled must be 0 or 1');
+    db.prepare('UPDATE external_identity SET enabled=? WHERE job_number=?').run(row.enabled,row.jobNumber);
+    db.prepare('UPDATE user_account SET enabled=? WHERE id=?').run(row.enabled,userId);
+    db.prepare('DELETE FROM auth_session WHERE user_id=?').run(userId);
+    db.prepare('DELETE FROM workbench_session WHERE user_id=?').run(userId);
+  }
  }
  db.exec('COMMIT');console.log(`Explicit business mappings applied: ${rows.length}; no workbench password stored.`);
 }catch(error){db.exec('ROLLBACK');throw error;}finally{db.close();}

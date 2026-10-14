@@ -48,7 +48,7 @@ export function getDatabase() {
 export function closeDatabase() { if(globalThis[key]) {globalThis[key].native.close(); delete globalThis[key];} }
 export function migrate(native,root) {
   native.exec('CREATE TABLE IF NOT EXISTS node_schema_migration(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
-  const migrations=[['0000_tricky_gertrude_yorkes.sql','user_account'],['0001_data_refresh.sql','source_run'],['0002_live_eeo_snapshot.sql','eeo_snapshot'],['0003_workbench_identity.sql','external_identity']];
+  const migrations=[['0000_tricky_gertrude_yorkes.sql','user_account'],['0001_data_refresh.sql','source_run'],['0002_live_eeo_snapshot.sql','eeo_snapshot'],['0003_workbench_identity.sql','external_identity'],['0004_workbench_ticket.sql','workbench_ticket']];
   for(const [file,table] of migrations) {
     if(native.prepare('SELECT 1 FROM node_schema_migration WHERE name=?').get(file))continue;
     const present=native.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(table);

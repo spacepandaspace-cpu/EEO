@@ -1,12 +1,13 @@
 "use client";
+import { IdentitySettings } from './identity-settings';
 import { consultantOptions } from "@/lib/consultant-options";
 import { useBoundedFetch } from "@/lib/bounded-fetch";
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle, CalendarClock, CheckCircle2, ChevronRight, Database, HardDrive,
-  FileSpreadsheet, HelpCircle, KeyRound, Loader2, LockKeyhole, MessageSquareText, Play,
-  RefreshCw, Save, Search, UploadCloud, UserCog, Users,
+  AlertCircle, CheckCircle2, ChevronRight, Database,
+  FileSpreadsheet, HelpCircle, Loader2, MessageSquareText, Play,
+  RefreshCw, Save, Search, UploadCloud, Users,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from "recharts";
 
@@ -14,9 +15,7 @@ import type { Customer, CustomerDaily, DashboardSnapshot } from "./dashboard-typ
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -336,70 +335,7 @@ function DataRefreshPage() {
   </div>;
 }
 
-type ConsultantAccount = { username: string; consultantName: string; enabled: boolean; createdAt?: string };
-
-function SettingsPage({ snapshot }: { snapshot: DashboardSnapshot }) {
-  const request = useBoundedFetch();
-  const [accounts, setAccounts] = useState<ConsultantAccount[]>([]);
-  const [workbenchMode,setWorkbenchMode]=useState(false);
-  const [accountError, setAccountError] = useState("");
-  const [dialog, setDialog] = useState<{ consultantName: string; mode: "create" | "reveal" } | null>(null);
-  const [adminPassword, setAdminPassword] = useState("");
-  const [revealedPassword, setRevealedPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    request("/api/consultant-accounts", { cache: "no-store" })
-      .then(async (response) => {
-        const payload = await response.json() as { accounts?: ConsultantAccount[]; error?: string;authMode?:string };
-        if (!response.ok) throw new Error(payload.error || "顾问账号读取失败");
-        setAccounts(payload.accounts ?? []);
-        setWorkbenchMode(payload.authMode==='workbench');
-      })
-      .catch((reason) => setAccountError(reason instanceof Error ? reason.message : "顾问账号读取失败"));
-  }, [request]);
-
-  const closeDialog = () => {
-    setDialog(null);
-    setAdminPassword("");
-    setRevealedPassword("");
-    setAccountError("");
-  };
-
-  const submitAccountAction = async () => {
-    if (!dialog || !adminPassword) return;
-    setBusy(true);
-    setAccountError("");
-    try {
-      const endpoint = dialog.mode === "create" ? "/api/consultant-accounts" : "/api/consultant-accounts/password";
-      const response = await request(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ consultantName: dialog.consultantName, adminPassword }) });
-      const payload = await response.json() as { account?: ConsultantAccount; password?: string; error?: string };
-      if (!response.ok || !payload.password) throw new Error(payload.error || "操作失败");
-      if (payload.account) setAccounts((current) => [...current, payload.account!]);
-      setRevealedPassword(payload.password);
-      setAdminPassword("");
-    } catch (reason) {
-      setAccountError(reason instanceof Error ? reason.message : "操作失败");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const accountNames = new Set(accounts.map((row) => row.consultantName));
-  if(workbenchMode)return <div className="space-y-5"><PageTitle title="系统设置" description="通过统一工作台登录；本系统按工号维护业务授权与顾问客户归属。" /><Card><CardHeader><CardTitle>统一登录与业务权限</CardTitle></CardHeader><CardContent><p>本系统不生成、保存或展示工作台密码。未配置工号映射的账号没有客户数据权限，工作台管理员不会自动成为本系统管理员。</p><p className="mt-3">身份及密码由统一工作台维护；本系统管理员与顾问只读权限由本系统授权表维护。</p></CardContent></Card></div>;
-  return <div className="space-y-5">
-    <PageTitle title="系统设置" description="管理顾问账号、自动更新、备份和本机安全策略。" />
-    <div className="grid gap-5 xl:grid-cols-2">
-      <Card className="border-emerald-950/10"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarClock className="h-4 w-4 text-emerald-700" /> 自动更新</CardTitle></CardHeader><CardContent className="space-y-4"><SettingRow label="目标更新时间" value="每周一 10:00 · Asia/Shanghai" /><SettingRow label="错过后开机补跑" value="电脑开机且当前用户已登录时补跑；不启动常驻采集器" /><SettingRow label="CRM更新方式" value="累计付费表手动上传" /><Button variant="outline" disabled className="w-full rounded-xl">请前往“数据更新”页面</Button></CardContent></Card>
-      <Card className="border-emerald-950/10"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><HardDrive className="h-4 w-4 text-emerald-700" /> 本地备份</CardTitle></CardHeader><CardContent className="space-y-4"><SettingRow label="备份目录" value="backups/daily" /><SettingRow label="保留时间" value="30天" /><SettingRow label="最近验证" value="2026-09-22" success /><Button variant="outline" disabled className="w-full rounded-xl">备份脚本已可用</Button></CardContent></Card>
-    </div>
-    <Card className="gap-0 border-slate-200 py-0">
-      <CardHeader className="border-b border-emerald-950/8 px-5 py-5"><CardTitle className="flex items-center gap-2 text-base"><UserCog className="h-4 w-4 text-emerald-700" /> 顾问账号</CardTitle><p className="mt-1 text-sm text-slate-500">账号名采用顾问姓名；密码由后台随机生成。查看原密码必须重新验证管理员密码，并写入审计记录。</p></CardHeader>
-      <div className="max-h-[520px] overflow-auto"><Table><TableHeader><TableRow className="bg-emerald-50/50 hover:bg-emerald-50/50"><TableHead className="pl-5">顾问</TableHead><TableHead>名下客户</TableHead><TableHead>账号状态</TableHead><TableHead>权限</TableHead><TableHead className="pr-5 text-right">操作</TableHead></TableRow></TableHeader><TableBody>{snapshot.consultants.map((consultant) => { const exists = accountNames.has(consultant); return <TableRow key={consultant} className="h-14"><TableCell className="pl-5 font-medium">{consultant}</TableCell><TableCell>{snapshot.customers.filter((row) => row.consultant === consultant).length}</TableCell><TableCell>{exists ? <Badge className="bg-emerald-100 text-emerald-700">已启用</Badge> : <Badge variant="outline">未生成</Badge>}</TableCell><TableCell><span className="inline-flex items-center gap-1 text-sm text-slate-500"><LockKeyhole className="h-3.5 w-3.5" /> 仅本人客户只读</span></TableCell><TableCell className="pr-5 text-right"><Button variant="ghost" size="sm" className="text-emerald-700 hover:bg-emerald-50" onClick={() => { setAccountError(""); setDialog({ consultantName: consultant, mode: exists ? "reveal" : "create" }); }}>{exists ? "查看密码" : "生成账号"}</Button></TableCell></TableRow>; })}</TableBody></Table></div>
-    </Card>
-    <Dialog open={Boolean(dialog)} onOpenChange={(open) => { if (!open) closeDialog(); }}><DialogContent><DialogHeader><DialogTitle>{dialog?.mode === "create" ? "生成顾问账号" : "查看顾问密码"}</DialogTitle><DialogDescription>{dialog?.consultantName} · 请重新输入管理员密码确认身份。</DialogDescription></DialogHeader>{revealedPassword ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs text-emerald-700">顾问登录账号：{dialog?.consultantName}</p><p className="mt-2 break-all font-mono text-lg font-semibold text-emerald-950">{revealedPassword}</p><p className="mt-2 text-xs text-emerald-700">请通过安全方式交给顾问。</p></div> : <div className="space-y-2"><Label htmlFor="admin-password-confirm">管理员密码</Label><Input id="admin-password-confirm" type="password" value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void submitAccountAction(); }} autoComplete="current-password" /></div>}{accountError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{accountError}</p>}<DialogFooter>{revealedPassword ? <Button onClick={closeDialog}>完成</Button> : <Button onClick={() => void submitAccountAction()} disabled={!adminPassword || busy}><KeyRound className="h-4 w-4" />{busy ? "验证中…" : dialog?.mode === "create" ? "验证并生成" : "验证并查看"}</Button>}</DialogFooter></DialogContent></Dialog>
-  </div>;
-}
+function SettingsPage() { return <IdentitySettings />; }
 
 function SettingRow({ label, value, success }: { label: string; value: string; success?: boolean }) { return <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"><span className="text-sm text-slate-500">{label}</span><span className={`text-sm font-medium ${success ? "text-emerald-600" : "text-slate-800"}`}>{value}</span></div>; }
 
@@ -410,6 +346,6 @@ export function SecondaryPage({ page, selectedUid, onOpenCustomer, snapshot, rea
   if (page === "客户详情与日志") return <CustomerDetail uid={selectedUid} snapshot={snapshot} readOnly={readOnly} />;
   if (page === "数据更新") return <DataRefreshPage />;
   if (page === "数据质量") return <DataQuality snapshot={snapshot} />;
-  if (page === "系统设置") return <SettingsPage snapshot={snapshot} />;
+  if (page === "系统设置") return <SettingsPage />;
   return null;
 }
