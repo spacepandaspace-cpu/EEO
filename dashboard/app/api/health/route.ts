@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/node-runtime';
 export async function GET(){
   try {
     const tables = ['user_account','customer_log','audit_log','source_run','crm_payment_event','system_config','eeo_snapshot'];

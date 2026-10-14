@@ -1,5 +1,5 @@
 import 'server-only';
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/node-runtime';
 import source from '@/app/data/snapshot.json';
 import { readLimitedBody } from '@/lib/bounded-request';
 import { manifestSchema, dailySchema, validateOverview, assertFresh, sha256 } from '@/lib/eeo-sync-protocol';

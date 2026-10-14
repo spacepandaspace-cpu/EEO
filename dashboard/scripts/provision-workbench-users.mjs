@@ -1,17 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {DatabaseSync} from 'node:sqlite';
+import {openSqlite,migrate} from './node-sqlite.mjs';
 const dir=process.env.DATA_DIR;
 const input=process.argv[2];
 if(!dir||!path.isAbsolute(dir)||!input)throw new Error('Usage: DATA_DIR=<persistent directory> node scripts/provision-workbench-users.mjs <explicitly-approved-mapping.json>');
 if(fs.statSync(input).size>65536)throw new Error('Mapping exceeds budget');
 const rows=JSON.parse(fs.readFileSync(input,'utf8'));
 if(!Array.isArray(rows)||rows.length>300)throw new Error('Invalid mapping');
-const state=path.join(dir,'d1','miniflare-D1DatabaseObject');
-const files=fs.readdirSync(state).filter(f=>f.endsWith('.sqlite')&&f!=='metadata.sqlite');
-let db;
-for(const file of files){const candidate=new DatabaseSync(path.join(state,file));if(candidate.prepare("SELECT 1 FROM sqlite_master WHERE name='external_identity'").get()){if(db){candidate.close();db.close();throw new Error('Ambiguous database');}db=candidate;}else candidate.close();}
-if(!db)throw new Error('Initialize server database before mapping');
+const db=openSqlite(); migrate(db,path.resolve(import.meta.dirname,'..'));
 try {
  db.exec('BEGIN IMMEDIATE');
  const jobs=new Set();

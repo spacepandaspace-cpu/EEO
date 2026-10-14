@@ -1,5 +1,5 @@
 import 'server-only';
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/node-runtime';
 import source from '@/app/data/snapshot.json';
 import type { DashboardSnapshot, CustomerDaily } from '@/app/dashboard-types';
 export async function liveSnapshot(): Promise<DashboardSnapshot> {

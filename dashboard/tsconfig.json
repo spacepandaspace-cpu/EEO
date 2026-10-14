@@ -28,8 +28,7 @@
       ]
     },
     "types": [
-      "node",
-      "@cloudflare/workers-types"
+      "node"
     ]
   },
   "include": [
@@ -42,6 +41,14 @@
   ],
   "exclude": [
     "node_modules",
-    "examples", "dist", ".wrangler", ".vinext", ".eeo-browser-profile", ".chrome-debug-local", ".chrome-preview-profile", "backups", "vendor"
+    "examples",
+    "dist",
+    ".wrangler",
+    ".vinext",
+    ".eeo-browser-profile",
+    ".chrome-debug-local",
+    ".chrome-preview-profile",
+    "backups",
+    "vendor"
   ]
 }

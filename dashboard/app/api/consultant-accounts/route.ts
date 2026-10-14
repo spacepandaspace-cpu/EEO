@@ -1,8 +1,8 @@
 import { readLimitedJson } from "@/lib/bounded-request";
 import "server-only";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { workbenchEnabled } from '@/lib/workbench-auth';
-import snapshot from "@/app/data/snapshot.json";
+import { liveSnapshot } from "@/lib/live-snapshot";
 import { createPasswordRecord, encryptRecoverablePassword, generateConsultantPassword, requireAdmin, verifyPassword, writeAudit } from "@/lib/local-auth";
 
 type AdminRecord = { passwordSalt: string; passwordHash: string };
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const payload = await readLimitedJson(request) as { consultantName?: string; adminPassword?: string };
     const consultantName = payload.consultantName?.trim() ?? "";
     const adminPassword = payload.adminPassword ?? "";
+    const snapshot = await liveSnapshot();
     if (!snapshot.consultants.includes(consultantName)) return Response.json({ error: "顾问不在当前客户主数据中" }, { status: 400 });
     const adminRecord = await env.DB.prepare("SELECT password_salt AS passwordSalt, password_hash AS passwordHash FROM user_account WHERE id = ?").bind(admin.id).first<AdminRecord>();
     if (!adminRecord || !(await verifyPassword(adminPassword, adminRecord.passwordSalt, adminRecord.passwordHash))) return Response.json({ error: "管理员密码错误" }, { status: 401 });

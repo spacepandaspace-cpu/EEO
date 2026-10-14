@@ -1,5 +1,5 @@
 import "server-only";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { workbenchEnabled, getWorkbenchUser, clearWorkbenchSession } from './workbench-auth';
 
 export const SESSION_COOKIE = "ai_risk_session";

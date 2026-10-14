@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { DatabaseSync } from 'node:sqlite';
+import { openStore } from './local-eeo-store.mjs';
 import { writeSnapshot } from './local-eeo-store.mjs';
 
 const root = path.resolve(import.meta.dirname,'..');
@@ -14,15 +14,7 @@ const current = await fs.readFile(snapshotPath,'utf8');
 const hash = value => createHash('sha256').update(value).digest('hex');
 if (!validation.crmUnchanged || validation.failureCount !== 0 || validation.customerCount !== JSON.parse(current).customers.length) throw new Error('Prepared refresh is not validated');
 if (hash(current)!==validation.baseSnapshotHash || hash(candidate)!==validation.candidateHash) throw new Error('Snapshot changed after preparation; refuse overwrite');
-const state = path.join(root,'.wrangler/state/v3/d1/miniflare-D1DatabaseObject');
-const files = await fs.readdir(state);
-let database;
-for (const file of files.filter(file=>file.endsWith('.sqlite')&&file!=='metadata.sqlite')) {
-  const connection = new DatabaseSync(path.join(state,file));
-  if (connection.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='source_run'").get()) {database=connection;break;}
-  connection.close();
-}
-if (!database) throw new Error('No local source_run database; snapshot unchanged');
+const database=openStore(root);
 const backupPath = path.join(root,'backups',`snapshot-before-eeo-${Date.now()}.json`);
 await fs.mkdir(path.dirname(backupPath),{recursive:true});
 await fs.copyFile(snapshotPath,backupPath);

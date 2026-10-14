@@ -1,5 +1,5 @@
 import { clearSession, expiredSessionCookie } from "@/lib/local-auth";
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/node-runtime';
 import { workbenchEnabled } from '@/lib/workbench-auth';
 
 export async function POST(request: Request) {

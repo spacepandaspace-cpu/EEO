@@ -1,5 +1,5 @@
 import { readLimitedJson } from "@/lib/bounded-request";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { createPasswordRecord, createSession, sessionCookie, writeAudit } from "@/lib/local-auth";
 
 export async function POST(request: Request) {

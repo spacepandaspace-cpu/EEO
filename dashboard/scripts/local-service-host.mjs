@@ -18,7 +18,7 @@ fs.writeFileSync(lock,String(process.pid),{flag:'wx'});
 process.once('exit',()=>{try{if(fs.readFileSync(lock,'utf8').trim()===String(process.pid))fs.unlinkSync(lock);}catch{}});
 let child, stopping=false, restarts=0, retryTimer;
 function start(){
- child=spawn(process.execPath,['--max-old-space-size=256','scripts/run-framework.mjs','dev'],{
+ child=spawn(process.execPath,['--max-old-space-size=256','scripts/run-server.mjs','--local'],{
   cwd:root,env:{...process.env,AUTH_MODE:'local'},stdio:'inherit',windowsHide:true,
  });
  console.log(`Local service host PID ${process.pid}; runtime PID ${child.pid}; recovery ${restarts}/2`);

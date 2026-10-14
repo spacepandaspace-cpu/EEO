@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { getAuthenticatedUser } from "@/lib/local-auth";
 import { workbenchEnabled, workbenchLoginUrl } from '@/lib/workbench-auth';
 

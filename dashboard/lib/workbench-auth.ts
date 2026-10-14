@@ -1,5 +1,5 @@
 import 'server-only';
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/node-runtime';
 import { readLimitedBody } from './bounded-request';
 import { verifyWorkbenchToken } from './workbench-token';
 export const workbenchEnabled=()=>env.AUTH_MODE==='workbench';

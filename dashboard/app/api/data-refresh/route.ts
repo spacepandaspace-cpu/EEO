@@ -1,6 +1,6 @@
 import { readLimitedJson } from "@/lib/bounded-request";
 import "server-only";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 
 import { liveSnapshot } from "@/lib/live-snapshot";
 import { requireAdmin, writeAudit } from "@/lib/local-auth";

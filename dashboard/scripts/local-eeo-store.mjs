@@ -1,18 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-export function openStore(root) {
-  const dir = path.join(root,'.wrangler/state/v3/d1/miniflare-D1DatabaseObject');
-  for (const file of fs.readdirSync(dir).filter(file=>file.endsWith('.sqlite')&&file!=='metadata.sqlite')) {
-    const db = new DatabaseSync(path.join(dir,file));
-    if (db.prepare("SELECT 1 FROM sqlite_master WHERE name='source_run'").get()) {
-      db.exec('PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS eeo_snapshot (key TEXT PRIMARY KEY, json TEXT NOT NULL)');
-      return db;
-    }
-    db.close();
-  }
-  throw new Error('本地业务数据库未初始化');
-}
+import {openSqlite,migrate} from './node-sqlite.mjs';
+export function openStore(root) { const db=openSqlite(root); migrate(db,root); return db; }
 export function writeSnapshot(db, snapshot) {
   const {customerDaily, customerAliases, ...rest} = snapshot;
   void customerAliases;

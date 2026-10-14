@@ -1,6 +1,6 @@
 import { readLimitedJson } from "@/lib/bounded-request";
 import "server-only";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { workbenchEnabled } from '@/lib/workbench-auth';
 import { decryptRecoverablePassword, requireAdmin, verifyPassword, writeAudit } from "@/lib/local-auth";
 

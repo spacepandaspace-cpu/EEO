@@ -1,5 +1,5 @@
 import { readLimitedJson } from "@/lib/bounded-request";
-import { env } from "cloudflare:workers";
+import { env } from "@/lib/node-runtime";
 import { workbenchEnabled } from '@/lib/workbench-auth';
 import { createSession, sessionCookie, verifyPassword, writeAudit, type AuthUser } from "@/lib/local-auth";
 

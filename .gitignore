@@ -23,3 +23,8 @@
 **/eeo-manual-capture.json
 **/approved-mapping.json
 **/consultant-identities.json
+
+/runtime-data/
+/deliveries/
+/dashboard/.node-data/
+**/*.tsbuildinfo
