@@ -17,8 +17,8 @@
 **/*.db*
 **/*.xlsx
 **/backups/
-data/
-diagnostics/
+/data/
+/diagnostics/
 **/eeo-compact-capture.json
 **/eeo-manual-capture.json
 **/approved-mapping.json
