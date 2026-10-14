@@ -1,0 +1,23 @@
+[Unit]
+Description=Teaching Risk Dashboard
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
+[Service]
+Type=simple
+User=teachingrisk
+WorkingDirectory=/opt/teaching-risk/current
+Environment=PORT=3002
+Environment=DATA_DIR=/var/lib/teaching-risk
+EnvironmentFile=/etc/teaching-risk.env
+ExecStart=@NODE@ --max-old-space-size=256 scripts/run-server.mjs
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=15
+KillMode=control-group
+MemoryMax=512M
+MemorySwapMax=128M
+NoNewPrivileges=true
+UMask=0077
+[Install]
+WantedBy=multi-user.target

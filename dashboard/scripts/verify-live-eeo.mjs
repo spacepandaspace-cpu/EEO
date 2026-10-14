@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {writeSnapshot} from './local-eeo-store.mjs';
+import {refreshUsage} from './eeo-refresh-model.mjs';
+const source=JSON.parse(await fs.readFile(new URL('../app/data/snapshot.json',import.meta.url),'utf8'));
+const db=new DatabaseSync(':memory:');
+db.exec('CREATE TABLE eeo_snapshot(key TEXT PRIMARY KEY,json TEXT NOT NULL)');
+db.exec('BEGIN');writeSnapshot(db,source);db.exec('COMMIT');
+const overview=JSON.parse(db.prepare("SELECT json FROM eeo_snapshot WHERE key='overview'").get().json);
+assert.deepEqual(overview.baselines,source.baselines);assert.equal(overview.customerDaily.length,0);
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM eeo_snapshot').get().n,source.customers.length+1);
+for(const customer of source.customers){const raw=db.prepare('SELECT json FROM eeo_snapshot WHERE key=?').get(`daily:${customer.uid}`).json;assert(Buffer.byteLength(raw)<100000);const rows=JSON.parse(raw);assert(rows.length<=365 && rows.every(row=>row.uid===customer.uid));}
+db.exec('BEGIN');writeSnapshot(db,{...source,asOf:'rollback-test'});db.exec('ROLLBACK');
+assert.equal(JSON.parse(db.prepare("SELECT json FROM eeo_snapshot WHERE key='overview'").get().json).asOf,source.asOf);
+const validation=JSON.parse(await fs.readFile(new URL('../../diagnostics/eeo-refresh-2026-10-08/validation.json',import.meta.url),'utf8'));
+const dir=new URL(`file:///${path.resolve(validation.captureDir).replaceAll('\\','/')}/`);
+const details=(await fs.readFile(new URL('school-details.jsonl',dir),'utf8')).trim().split('\n').map(JSON.parse);
+const manifest=JSON.parse(await fs.readFile(new URL('manifest.json',dir),'utf8'));
+const credits=new Map(source.customers.map(customer=>[customer.uid,customer.theoreticalNet+customer.postLaunchLessons*50]));
+const weekly=refreshUsage(source,details,manifest,credits,{weekly:true});
+assert.equal(weekly.usageFocus.periodLabel,'近7天');assert.equal(weekly.usageFocus.holidayTo,'2026-10-07');
+assert.equal(weekly.usageFocus.holidayTotal,4568);assert.equal(weekly.baselines.paidAmount,source.baselines.paidAmount);
+db.close();console.log('实时数据库分块、事务回滚、365天预算、周窗口与CRM保留验证通过。');

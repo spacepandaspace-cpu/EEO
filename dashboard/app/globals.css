@@ -1,0 +1,112 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #10251d;
+  --card: #ffffff;
+  --card-foreground: #10251d;
+  --popover: #ffffff;
+  --popover-foreground: #10251d;
+  --primary: #0b9f6e;
+  --primary-foreground: #ffffff;
+  --secondary: #edf8f3;
+  --secondary-foreground: #145c43;
+  --muted: #f3f8f5;
+  --muted-foreground: #64766e;
+  --accent: #e4f5ed;
+  --accent-foreground: #0e5a40;
+  --destructive: #e7000b;
+  --border: #dfe9e4;
+  --input: #d7e4de;
+  --ring: #10a978;
+  --chart-1: #0b9f6e;
+  --chart-2: #087253;
+  --chart-3: #42c795;
+  --chart-4: #f59e0b;
+  --chart-5: #ef5b5b;
+  --radius: 0.95rem;
+  --sidebar: #083a2c;
+  --sidebar-foreground: #dceee7;
+  --sidebar-primary: #12a876;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #14513f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1b5947;
+  --sidebar-ring: #55d4a6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif;
+  min-width: 320px;
+}
+
+* {
+  scrollbar-color: #b8d1c5 transparent;
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: #c8f2df;
+  color: #093b2d;
+}

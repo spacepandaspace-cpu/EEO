@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS eeo_snapshot (
+  key TEXT PRIMARY KEY,
+  json TEXT NOT NULL
+);

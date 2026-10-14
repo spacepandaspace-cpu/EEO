@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { refreshUsage } from './eeo-refresh-model.mjs';
+import { safeNumber, sparseCount } from './eeo-values.mjs';
+for (const value of [null, undefined, '', ' ', false, true, {}, [], 'bad', Infinity]) assert.equal(safeNumber(value), null);
+for (const value of [0, '0']) assert.equal(safeNumber(value), 0);
+assert.equal(safeNumber('38'), 38);
+assert.equal(sparseCount({date:'2026-10-01'}, ['lessonCount']),0);
+assert.equal(sparseCount({lessonCount:12}, ['lessonCount']),12);
+assert.equal(sparseCount({lessonCount:null}, ['lessonCount']),null);
+assert.equal(safeNumber(undefined),null,'Unsupported status metrics must never use sparse zero defaults');
+const root = path.resolve(import.meta.dirname,'..');
+const snapshot = JSON.parse(await fs.readFile(path.join(root,'app/data/snapshot.json'),'utf8'));
+const dir = path.resolve(process.argv[2]);
+const manifest = JSON.parse(await fs.readFile(path.join(dir,'manifest.json'),'utf8'));
+const details = (await fs.readFile(path.join(dir,'school-details.jsonl'),'utf8')).trim().split('\n').map(JSON.parse);
+const [header,...lines] = (await fs.readFile(path.join(root,'../data/customer_credit_estimate_2026-09-21.tsv'),'utf8')).trim().split(/\r?\n/);
+const columns = header.split('\t');
+const credits = new Map(lines.map(line=>{const cells=line.split('\t');return [cells[columns.indexOf('uid')],Number(cells[columns.indexOf('knownCreditsIn')])];}));
+const result = refreshUsage(snapshot,details,manifest,credits);
+assert.equal(result.usageFocus.holidayTotal,4568);
+assert.equal(result.usageFocus.previousTotal,2966);
+assert.equal(result.usageFocus.highUsageCount,8);
+assert.equal(result.usageFocus.paidLowUsageCount,6);
+assert(result.customers.every(customer=>!customer.reasons.some(reason=>reason.includes('额度不足'))), 'Unverified quota estimates must not trigger shortage follow-up');
+const uncertainCredits=refreshUsage(snapshot,details,manifest,new Map(snapshot.customers.map(customer=>[customer.uid,0])));
+for(const customer of result.customers){
+  const uncertain=uncertainCredits.customers.find(row=>row.uid===customer.uid);
+  assert.equal(uncertain.score,customer.score,'Unverified credit estimates must not change the follow-up score');
+  assert.equal(uncertain.priority,customer.priority,'Unverified credit estimates must not change follow-up priority');
+}
+for (const old of snapshot.customers) {
+  const customer = result.customers.find(c=>c.uid===old.uid);
+  for (const key of ['paid','paymentCount','paymentTotal','paymentDate','consultant','claim','claimDate','trial']) assert.equal(customer[key],old[key]);
+}
+assert.throws(()=>refreshUsage(snapshot,details,{...manifest,failureCount:1},credits));
+assert.throws(()=>refreshUsage(snapshot,details.slice(1),manifest,credits));
+const duplicate = structuredClone(details); duplicate[1] = duplicate[0];
+assert.throws(()=>refreshUsage(snapshot,duplicate,manifest,credits));
+const mismatch = structuredClone(details); mismatch[0].dailyMetrics[0].analyzedLessonCount += 1;
+assert.throws(()=>refreshUsage(snapshot,mismatch,manifest,credits));
+const missingDay = structuredClone(details); missingDay[0].dailyMetrics.pop();
+assert.throws(()=>refreshUsage(snapshot,missingDay,manifest,credits));
+assert(result.customerDaily.some(row=>row.low===null),'Missing risk classifications must remain unknown');
+const latest = result.dailyAggregate.filter(row=>row.date>='2026-09-21');
+assert(latest.some(row=>row.risk>0),'Real daily risk totals must remain available after the historical export');
+assert(latest.every(row=>row.reviewed===null && row.falsePositive===null),'Unavailable daily status must not become zero');
+assert(result.baselines.reviewedLessons>0 && result.baselines.falsePositiveLessons>0,'Real cumulative counts must remain available');
+const invalid = structuredClone(details); invalid[0].dailyMetrics[0].falsePositiveCount=-1;
+assert.throws(()=>refreshUsage(snapshot,invalid,manifest,credits));
+console.log(JSON.stringify({customers:92,dailyReconciled:true,crmPreserved:true,incompleteRejected:true,duplicateRejected:true,countMismatchRejected:true,missingDaysRejected:true,riskUnknownNotZero:true}));

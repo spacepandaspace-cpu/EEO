@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {orderAiCredits,paymentAiCredits} from './ai-credit-rules.mjs';
+assert.deepEqual(orderAiCredits(5000),{purchased:500000,bonus:250000,total:750000});
+assert.equal(orderAiCredits(9999).total,1499850);
+assert.equal(orderAiCredits(10000).total,2000000);
+assert.equal(orderAiCredits(15000).total,3000000);
+assert.equal(paymentAiCredits([{amount:5000},{amount:5000}]).total,1500000);
+for(const amount of [null,undefined,'',false,-1,'bad']) assert.throws(()=>orderAiCredits(amount));
+const snapshot=JSON.parse(fs.readFileSync(new URL('../app/data/snapshot.json',import.meta.url)));
+const paid=snapshot.customers.filter(customer=>customer.paid);
+assert(paid.every(customer=>customer.purchasedAiCredits===customer.paymentTotal*100 && customer.paidAiCredits===customer.purchasedAiCredits+customer.bonusAiCredits));
+console.log('单笔促销门槛、多笔订单逐笔计算、非法金额与客户AI额度对账验证通过。');
